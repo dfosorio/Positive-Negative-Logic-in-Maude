@@ -54,7 +54,6 @@ mod LINKADDING is
 	op positive : -> Msg [ctor] .
 	op negative : -> Msg [ctor] .
 	op choose : -> Msg [ctor] .
-	op end : -> Msg [ctor] .
 
 
 	--- Rules -------------------------------
@@ -81,19 +80,13 @@ mod LINKADDING is
 						   					 {randomCounter(myCounter) (<{A},{R+},{R-}>, {p, E} )} =>  insert({ gt | SL },[ gt,(choose),0]) 
 						   					 																													 {randomCounter(myCounter)
 						   					 																													 (<{A},{R+},{union(R-,p)}>, {E}) } .
-	--- adds ending message
-	rl [end] : {gt | SL} 
-						 {randomCounter(myCounter) (<{A},{R+},{R-}>, {(empty).Relation} )} =>  (end)
-						 																																			 { gt | SL } 
-   					 																													 						 {randomCounter(myCounter)
-   					 																													 						 (<{A},{R+},{R-}>, {(empty).Relation} ) } .
 
  	--- User Defined Observations------------
- 	eq val("balance", {randomCounter(myCounter) (<{A},{R+},{R-}>, {p, E} )} {gt | SL} ) 
+ 	eq val("balance", {randomCounter(myCounter) (<{A},{R+},{R-}>, {E} )} {gt | SL} ) 
   = if local-balance(<{A},{R+},{R-}>) then 1.0 else 0.0 fi .
 
-  eq val("deadlock", (end) Conf) = 1.0 .
-  eq val("deadlock", Conf) = 0.0 [owise] .
+  eq val("deadlock", {randomCounter(myCounter) (<{A},{R+},{R-}>, {E} )} {gt | SL} )
+  = if E == (empty).Relation then 1.0 else 0.0 fi .
 	--- -------------------------------------
 
 	--- InitialState

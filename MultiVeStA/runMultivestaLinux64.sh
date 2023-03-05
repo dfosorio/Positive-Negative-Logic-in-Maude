@@ -1,2 +1,0 @@
-#PNL model
-java -jar multivesta.jar client -sd vesta.pmaude.NewAPMaudeState -m linkAddingMultiVeStA.maude -o '-mc ./Maude-3.0+yices2-linux/maude-Yices2.linux64' -f linkAddingMultiVeStA.multiquatex -l 1 -osws ONESTEP -bs 28 -vp true -verboseServers false -a 0.05 -d1 0.1 -ir 1
