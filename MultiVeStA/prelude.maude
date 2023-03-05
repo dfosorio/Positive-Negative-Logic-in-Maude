@@ -1,0 +1,167 @@
+fmod AGENTS is
+	--- Agents are represented with natural numbers
+	pr NAT .
+	pr SET{Nat} * (sort Set{Nat} to AgentSet, sort NeSet{Nat} to NeAgentSet) . 
+endfm
+
+
+fmod PAIR is
+	--- Pairs are represented with two agents
+	pr NAT .
+	sort Pair .
+  	op (_<->_) : Nat Nat -> Pair [ctor comm] . --- symmetric: (a<->b) = (b<->a)
+
+	--- Variables----------------------------
+	vars a b c : Nat .
+	--- -------------------------------------
+	
+	--- Functions over pairs-----------------
+	
+	--- checks if agent is in a pair
+	op inPair : Nat Pair -> Bool .
+	eq inPair(a, (b <-> c)) = if a == b or a == c 
+							  then true
+							  else false
+							  fi .
+
+	--- if agent in pair, gets is neighbor
+	op getPartner : Nat Pair -> Nat .
+	eq getPartner(a, (a <-> c)) = c .
+	eq getPartner(a, (b <-> a)) = b .
+
+	--- -------------------------------------
+endfm
+
+
+view Pair from TRIV to PAIR is
+  sort Elt to Pair .
+endv
+
+
+fmod RELATION is 
+	--- Relations are sets of Pairs
+	pr AGENTS .
+	pr PAIR .
+	pr SET{Pair} * (sort Set{Pair} to Relation, sort NeSet{Pair} to NeRelation) .
+
+	--- Variables----------------------------
+	vars R : Relation .
+	vars p : Pair .
+	vars a b c : Nat .
+	--- -------------------------------------
+
+	--- Functions over relations-------------
+
+	--- get neighbors of an agent 
+	op getNeighbors : Nat Relation -> AgentSet .
+	eq getNeighbors(a, (p, R)) = if inPair(a,p) 
+								 then ( getPartner(a,p), getNeighbors(a, R) )
+								 else getNeighbors(a, R) 
+								 fi .
+	eq getNeighbors(a, (empty).Relation) = (empty).AgentSet .
+
+	--- -------------------------------------
+
+
+endfm
+
+
+fmod SIGNEDFRAME is
+	--- A signed frame consists of a set of agents (vertex)
+	--- and a 2 relations (edges) 
+	pr RELATION .
+	sort SignedFrame .
+
+	--- by convention the first relation is (+) and the second one is (-)
+	op <{_},{_},{_}> : AgentSet Relation Relation -> SignedFrame [ctor] .
+
+	--- Variables----------------------------
+	vars R+ R- : Relation .
+	vars A : AgentSet .
+	vars a b c : Nat .
+	--- -------------------------------------
+
+	--- SIGNED FRAMES PROPERTIES-------------
+	
+	--- Non-overlapping
+	op non-overlapping : SignedFrame -> Bool .
+	eq non-overlapping(<{A},{R+},{R-}>) = if intersection(R+,R-) == (empty).Relation 
+										  then true 
+										  else false 
+										  fi .
+
+	--- Collectively connected
+	op collectively-connected : SignedFrame -> Bool .
+	op collectively-connected2 : Nat AgentSet Relation Relation -> Bool .
+	
+	eq collectively-connected(<{(a, A)}, {R+}, {R-}>) = if collectively-connected2(a, A, R+, R-) 
+								  			 	 		then collectively-connected(<{A}, {R+}, {R-}>)
+								  			 	 		else false 
+											 	 		fi .
+	eq collectively-connected(<{(empty).AgentSet}, {R+}, {R-}>) = true .
+
+	eq collectively-connected2(a, (b, A), R+, R-) = if ((a <-> b) in R+) or ((a <-> b) in R-) 
+													then collectively-connected2(a, A, R+, R-)
+							   						else false 
+							   						fi .
+	eq collectively-connected2(a, (empty).AgentSet, R+, R-) = true .
+	
+	--- Local balance
+	op local-balance  : SignedFrame -> Bool . 
+	op local-balance2 : Nat AgentSet Relation Relation -> Bool .
+	op local-balance3 : Nat Nat AgentSet Relation Relation -> Bool .
+	op local-balance4 : Nat Nat Nat AgentSet Relation Relation -> Bool .
+	
+	eq local-balance(<{(a,A)},{R+},{R-}>) = local-balance2(a, getNeighbors(a, union(R+,R-)), R+, R-) and
+											local-balance(<{A},{R+},{R-}>) .
+	eq local-balance(<{(empty).AgentSet},{R+},{R-}>) = true . 
+
+	eq local-balance2(a, (b,A), R+, R-) = local-balance3(a,b,getNeighbors(b, union(R+,R-)), R+, R-) and 
+										  local-balance2(a, A, R+, R-) .
+	eq local-balance2(a, (empty).AgentSet, R+, R-) = true .   
+
+	eq local-balance3(a, b, (c,A), R+, R-) = if (c <-> a) in union(R+,R-)
+											 then local-balance4(a,b,c, R+, R-) and local-balance3(a, b, A, R+, R-)
+											 else local-balance3(a, b, A, R+, R-)
+											 fi . 
+	eq local-balance3(a, b, (empty).AgentSet, R+, R-) = true .
+
+	op local-balance4 : Nat Nat Nat Relation Relation -> Bool .
+	eq local-balance4(a,b,c, R+, R-) = if ( (a <-> b) in R+ and (b <-> c) in R+ and (c <-> a) in R+ ) or --- (+,+,+)
+									  	  ( (a <-> b) in R+ and (b <-> c) in R- and (c <-> a) in R- ) or --- (+,-,-)
+									  	  ( (a <-> b) in R- and (b <-> c) in R+ and (c <-> a) in R- ) or --- (-,+,-)
+									  	  ( (a <-> b) in R- and (b <-> c) in R- and (c <-> a) in R+ )    --- (-,-,+)
+								   		  then true
+								   		  else false
+								   		  fi .
+	--- -------------------------------------
+
+
+endfm 
+
+
+fmod PRELUDE is
+	pr SIGNEDFRAME .
+endfm
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

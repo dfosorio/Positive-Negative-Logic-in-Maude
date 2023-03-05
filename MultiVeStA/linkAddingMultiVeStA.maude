@@ -1,0 +1,108 @@
+load prelude .
+
+mod SAMPLER is
+  pr RANDOM .
+  pr CONVERSION .
+
+  var N myCounter : Nat .
+  
+  --- Uniform distribution 
+  op uniform : Nat Nat -> Nat .
+  eq uniform(N, myCounter) =  random(myCounter) rem N .
+endm
+
+mod LINKADDING is
+	pr APMAUDE .
+	pr SAMPLER .
+	pr PRELUDE .
+	pr CONFIGURATION .
+
+	--- Variables----------------------------
+	vars R+ R- E : Relation .
+	vars A : AgentSet .
+	vars p : Pair . 
+	vars a b : Nat .
+	--- -------------------------------------
+
+	--- Operators and equations--------------
+
+	--- sort to represent system configurations
+	sort State .
+	op (_,{_}) : SignedFrame Relation -> State [ctor] .
+	
+	--- get set of remaining edges to be collectively-connected
+	op remainingEdges : SignedFrame -> Relation .
+	op remainingEdges2 : Nat AgentSet Relation Relation -> Relation . 
+	
+	eq remainingEdges(<{(a,A)},{R+},{R-}>) = remainingEdges2(a, A, R+, R-) , remainingEdges(<{A},{R+},{R-}>) .
+	eq remainingEdges(<{(empty).AgentSet},{R+},{R-}>) = (empty).Relation .
+
+	eq remainingEdges2(a, (b,A), R+, R-) = if (a <-> b) in R+ or (a <-> b) in R-
+										   then remainingEdges2(a, A, R+, R-)
+										   else (a <-> b) , remainingEdges2(a, A, R+, R-)
+										   fi .
+	eq remainingEdges2(a, (empty).AgentSet, R+, R-) = (empty).Relation .
+	--- -------------------------------------
+
+
+	--- MultiVeStA---------------------------
+	subsort State < Configuration .
+	var gt : Float .  
+	var SL : ScheduleList .
+	var myCounter : Nat .
+	vars Conf : Configuration .
+	op positive : -> Msg [ctor] .
+	op negative : -> Msg [ctor] .
+	op choose : -> Msg [ctor] .
+	op end : -> Msg [ctor] .
+
+
+	--- Rules -------------------------------
+	--- choose positive or negative edge 
+	rl [choose] : (choose)
+								{gt | SL} 
+				  			{randomCounter(myCounter) (<{A},{R+},{R-}>, {E})} => if uniform(2, myCounter) == 0
+				  																														then insert({ gt | SL },[ gt + 1.0 ,(positive),0])
+				  																														     { randomCounter(s(myCounter)) (<{A},{R+},{R-}>, {E})}
+				  																														else insert({ gt | SL },[ gt + 1.0 ,(negative),0])
+				  																														     { randomCounter(s(myCounter)) (<{A},{R+},{R-}>, {E})}
+				  																														fi .
+
+	--- add one of missing edges to the positive relation
+	rl [addPositiveEdge] : (positive) 
+						   					 {gt | SL} 
+						   					 {randomCounter(myCounter) (<{A},{R+},{R-}>, {p, E} )} =>  insert({ gt | SL },[ gt,(choose),0]) 
+						   					 																													 {randomCounter(myCounter)
+						   					 																													 (<{A},{union(R+,p)},{R-}>, {E}) } .
+
+	--- add one of missing edges to the negative relation
+	rl [addNegativeEdge] : (negative)
+						   					 {gt | SL} 
+						   					 {randomCounter(myCounter) (<{A},{R+},{R-}>, {p, E} )} =>  insert({ gt | SL },[ gt,(choose),0]) 
+						   					 																													 {randomCounter(myCounter)
+						   					 																													 (<{A},{R+},{union(R-,p)}>, {E}) } .
+	--- adds ending message
+	rl [end] : {gt | SL} 
+						 {randomCounter(myCounter) (<{A},{R+},{R-}>, {(empty).Relation} )} =>  (end)
+						 																																			 { gt | SL } 
+   					 																													 						 {randomCounter(myCounter)
+   					 																													 						 (<{A},{R+},{R-}>, {(empty).Relation} ) } .
+
+ 	--- User Defined Observations------------
+ 	eq val("balance", {randomCounter(myCounter) (<{A},{R+},{R-}>, {p, E} )} {gt | SL} ) 
+  = if local-balance(<{A},{R+},{R-}>) then 1.0 else 0.0 fi .
+
+  eq val("deadlock", (end) Conf) = 1.0 .
+  eq val("deadlock", Conf) = 0.0 [owise] .
+	--- -------------------------------------
+
+	--- InitialState
+	--- If the initial Signed Frame is SF then the initial state
+	--- is (SF, {remainingEdges(SF)}) .
+	--- Example:
+	op initSF : -> SignedFrame .
+	eq initSF = < {1,2,3}, {(empty).Relation}, {(empty).Relation} > . 
+	op init : -> Configuration .
+	eq init = insert({0.0 | nilSL},[0.0,(choose),0]) randomCounter(0) (initSF,{remainingEdges(initSF)}) .
+
+endm 

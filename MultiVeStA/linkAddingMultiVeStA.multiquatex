@@ -1,0 +1,4 @@
+PPNL(n) = if (s.rval("deadlock") == 1.0) 
+	     then s.rval(n) else # PPNL(n) fi ;
+
+eval E[ PPNL("balance") ] ;
