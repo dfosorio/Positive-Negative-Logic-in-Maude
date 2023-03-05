@@ -1,0 +1,52 @@
+load prelude .
+
+mod LINKADDING is
+	pr PRELUDE .
+
+	--- Variables----------------------------
+	vars R+ R- E : Relation .
+	vars A : AgentSet .
+	vars p : Pair . 
+	vars a b : Nat .
+	--- -------------------------------------
+
+	--- Operators and equations--------------
+
+	--- sort to represent system configurations
+	sort State .
+	op (_,{_}) : SignedFrame Relation -> State [ctor] .
+	
+	--- get set of remaining edges to be collectively-connected
+	op remainingEdges : SignedFrame -> Relation .
+	op remainingEdges2 : Nat AgentSet Relation Relation -> Relation . 
+	
+	eq remainingEdges(<{(a,A)},{R+},{R-}>) = remainingEdges2(a, A, R+, R-) , remainingEdges(<{A},{R+},{R-}>) .
+	eq remainingEdges(<{(empty).AgentSet},{R+},{R-}>) = (empty).Relation .
+
+	eq remainingEdges2(a, (b,A), R+, R-) = if (a <-> b) in R+ or (a <-> b) in R-
+										   then remainingEdges2(a, A, R+, R-)
+										   else (a <-> b) , remainingEdges2(a, A, R+, R-)
+										   fi .
+	eq remainingEdges2(a, (empty).AgentSet, R+, R-) = (empty).Relation .
+	--- -------------------------------------
+
+	--- Rules -------------------------------
+
+	--- add one of missing edges to the positive relation
+	rl [addPositiveEdge] : (<{A},{R+},{R-}>, {p, E} ) =>  (<{A},{union(R+,p)},{R-}>, {E}) .
+
+	--- add one of missing edges to the negative relation
+	rl [addNegativeEdge] : (<{A},{R+},{R-}>, {p, E} )=>  (<{A},{R+},{union(R-,p)}>, {E}) .
+
+	--- -------------------------------------
+
+	--- InitialState
+	--- If the initial Signed Frame is SF then the initial state
+	--- is (SF, {remainingEdges(SF)}) .
+	--- Example:
+	op initSF : -> SignedFrame .
+	eq initSF = < {1,2,3}, {(empty).Relation}, {(empty).Relation} > . 
+	op init : -> State .
+	eq init = (initSF,{remainingEdges(initSF)}) .
+
+endm 
