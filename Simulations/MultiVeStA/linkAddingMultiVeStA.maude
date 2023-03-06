@@ -92,10 +92,20 @@ mod LINKADDING is
 	--- InitialState
 	--- If the initial Signed Frame is SF then the initial state
 	--- is (SF, {remainingEdges(SF)}) .
-	--- Example:
-	op initSF : -> SignedFrame .
-	eq initSF = < {1,2,3}, {(empty).Relation}, {(empty).Relation} > . 
+	--- Examples:
+	--- Experiment 1:
+	op initSF1 : -> SignedFrame .
+	eq initSF1 = < {1,2,3}, {(empty).Relation}, {(empty).Relation} > .
+
+	--- Experiment 2:
+	op initSF2 : -> SignedFrame .
+	eq initSF2 = < {1,2,3,4}, {(1 <-> 2), (1 <-> 3)}, {(empty).Relation} > .
+	
+	--- Experiment 3:
+	op initSF3 : -> SignedFrame .
+	eq initSF3 = < {1,2,3,4,5}, {(1 <-> 2), (2 <-> 3), (1 <-> 5), (4 <-> 3), (4 <-> 2)}, {(1 <-> 3), (1 <-> 4)} > . 
+	
 	op init : -> Configuration .
-	eq init = insert({0.0 | nilSL},[0.0,(choose),0]) randomCounter(0) (initSF,{remainingEdges(initSF)}) .
+	eq init = insert({0.0 | nilSL},[0.0,(choose),0]) randomCounter(0) (initSF3,{remainingEdges(initSF3)}) .
 
 endm 
