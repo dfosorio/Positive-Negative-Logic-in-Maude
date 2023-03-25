@@ -1,0 +1,31 @@
+
+load ../Model/linkAdding
+
+mod EXPERIMENTS is
+	pr LINKADDING .
+
+	ops p q : -> Prop [ctor] .
+
+	--- Experiment 1:
+	op initSM1 : -> SignedModel .
+	eq initSM1 = < {1,2,3}, {(empty).Relation}, {(empty).Relation}, {(p |-> (1)), (q |-> (3,2))} > .
+	op init1 : -> State .
+	eq init1 = (initSM1,{remainingEdges(initSM1)}) .
+
+		--- Experiment 1:
+	op initSM1 : -> SignedModel .
+	eq initSM1 = < {1,2,3}, {(empty).Relation}, {(empty).Relation}, {(p |-> (1)), (q |-> (3,2))} > .
+	op init1 : -> State .
+	eq init1 = (initSM1,{remainingEdges(initSM1)}) .
+
+	var SM : SignedModel .
+	var R : Relation .
+
+endm
+
+--- search command Experiment 1
+search init1 =>! (SM,{R}) s.t. (( SM,1 ||- ~(<+> q)) and ( SM,2 ||- ~(<-> q)) and ( SM,3 ||- ~(<-> q))) == true .
+
+--- search command Experiment 2
+
+--- search command Experiment 3

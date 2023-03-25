@@ -1,0 +1,221 @@
+fmod AGENTS is
+	--- Agents are represented with natural numbers
+	pr NAT .
+	pr SET{Nat} * (sort Set{Nat} to AgentSet, sort NeSet{Nat} to NeAgentSet) . 
+endfm
+
+fmod PAIR is
+	--- Pairs are represented with two agents
+	pr NAT .
+	sort Pair .
+  	op (_<->_) : Nat Nat -> Pair [ctor comm] . --- symmetric: (a<->b) = (b<->a)
+
+	--- Variables----------------------------
+	vars a b c : Nat .
+	--- -------------------------------------
+	
+	--- Functions over pairs-----------------
+	
+	--- checks if agent is in a pair
+	op inPair : Nat Pair -> Bool .
+	eq inPair(a, (b <-> c)) = if a == b or a == c 
+							  then true
+							  else false
+							  fi .
+
+	--- if agent in pair, gets is neighbor
+	op getPartner : Nat Pair -> Nat .
+	eq getPartner(a, (a <-> c)) = c .
+	eq getPartner(a, (b <-> a)) = b .
+
+	--- -------------------------------------
+endfm
+
+--- view definition to create sets of pairs (relations)
+view Pair from TRIV to PAIR is
+  sort Elt to Pair .
+endv
+
+
+fmod RELATION is 
+	--- Relations are sets of Pairs
+	pr AGENTS .
+	pr PAIR .
+	pr SET{Pair} * (sort Set{Pair} to Relation, sort NeSet{Pair} to NeRelation) .
+
+	--- Variables----------------------------
+	vars R : Relation .
+	vars p : Pair .
+	vars a b c : Nat .
+	--- -------------------------------------
+
+	--- Functions over relations-------------
+
+	--- get neighbors of an agent 
+	op getNeighbors : Nat Relation -> AgentSet .
+	eq getNeighbors(a, (p, R)) = if inPair(a,p) 
+								 then ( getPartner(a,p), getNeighbors(a, R) )
+								 else getNeighbors(a, R) 
+								 fi .
+	eq getNeighbors(a, (empty).Relation) = (empty).AgentSet .
+
+	--- -------------------------------------
+
+endfm
+
+
+fmod PROPOSITIONS is
+	--- Definition of the proposition sort
+	--- propositions will be defined by the user e.g. op p : -> Prop [ctor] .
+	sort Prop .
+	---
+endfm
+
+fmod VALUATIONElEM is
+	--- Definition of the elements in the valuation function
+	pr AGENTS .
+	pr PROPOSITIONS .
+
+	sort ValuationElem .
+
+	op (_|->_) : Prop AgentSet -> ValuationElem [ctor] .
+
+endfm 
+
+--- view definition to create sets of ValuationElem (ValuationFunction)
+view ValuationElem from TRIV to VALUATIONElEM is
+  sort Elt to ValuationElem .
+endv
+
+
+fmod VALUATIONFUNC is 
+	--- Definition of the valuation function as a set of ValuationElem
+	pr VALUATIONElEM .
+
+	pr SET{ValuationElem} * (sort Set{ValuationElem} to ValuationFunc, 
+													 sort NeSet{ValuationElem} to NeValuationFunc) .
+
+	--- Functions over valuation functions -------------
+	vars p q : Prop .
+	vars A : AgentSet .
+	vars VF : ValuationFunc .
+
+	--- get the valuation of a proposition 
+	op evaluate : Prop ValuationFunc -> AgentSet .
+	eq evaluate(p, ((q |-> A), VF)) = if p == q then A else evaluate(p, VF) fi .
+	eq evaluate(p, (empty).ValuationFunc) = (empty).AgentSet .
+	--- ------------------------------------------------
+endfm
+
+
+fmod SIGNEDMODEL is
+	--- Definition of signed models and pointed signed models
+	pr AGENTS .
+	pr RELATION .
+	pr VALUATIONFUNC .
+
+	sort SignedModel .
+	sort PointedSignedModel .
+
+	op <{_},{_},{_},{_}> : AgentSet Relation Relation ValuationFunc -> SignedModel [ctor] .
+
+	op _,_ : SignedModel Nat -> PointedSignedModel [ctor] . 
+
+endfm
+
+fmod PNL-SYNTAX is
+	pr SIGNEDMODEL .
+
+	sort Formula .
+	--- a proposition is a formula
+	subsort Prop < Formula .
+	--- Top and Bottom are formulas 
+	op False : -> Formula [ctor] .
+	op True : -> Formula [ctor] .
+
+	op ~_ : Formula -> Formula [ctor] .
+	op _/\_ : Formula Formula -> Formula [ctor] .
+	op _\/_ : Formula Formula -> Formula [ctor] .
+	op _->_ : Formula Formula -> Formula [ctor] .
+	op <+>_ : Formula -> Formula [ctor] .
+	op <->_ : Formula -> Formula [ctor] .
+
+endfm
+
+fmod PNL-SEMANTICS is
+	pr PNL-SYNTAX .
+
+	--- Definition of entailment
+	op _||-_ : PointedSignedModel Formula -> Bool .
+
+	--- Equations:
+	vars PSM : PointedSignedModel .
+	vars SM : SignedModel .
+	vars A : AgentSet .
+	vars R+ R- : Relation .
+	vars VF : ValuationFunc .
+	vars p : Prop .
+	vars a : Nat .
+	vars F F1 F2 : Formula .
+	
+	--- Top and Bottom semantics
+	eq PSM ||- True = true .
+	eq PSM ||- False = false .
+
+	--- proposition semantics
+	eq <{A},{R+},{R-},{VF}> , a ||- p = if a in evaluate(p,VF) 
+																			then true 
+																			else false 
+																			fi .
+
+	--- negation semantics 
+	eq PSM ||- ~(F) = not(PSM ||- F) .
+
+	--- conjunction semantics
+	eq PSM ||- (F1 /\ F2) = (PSM ||- F1) and (PSM ||- F2) .
+
+	--- disjunction semantics
+	eq PSM ||- (F1 \/ F2) = (PSM ||- F1) or (PSM ||- F2) .
+
+	--- implication semantics	
+	eq PSM ||- (F1 -> F2) = if (PSM ||- F1) then (PSM ||- F2) else true fi .
+
+	--- auxiliary function
+	--- verifies if one of the agents in the agent set verifies the formula
+	op checkFormulaSet : SignedModel Formula AgentSet -> Bool .
+	eq checkFormulaSet(SM, F, (a,A)) = ((SM,a) ||- F ) or checkFormulaSet(SM, F, A) .
+	eq checkFormulaSet(SM, F, (empty).AgentSet) = false .
+
+	--- modal operator <+> semantics 	 
+	eq <{A},{R+},{R-},{VF}> , a ||- <+>(F) = checkFormulaSet(<{A},{R+},{R-},{VF}>, F, getNeighbors(a,R+)) .
+	
+	--- modal operator <-> semantics
+	eq <{A},{R+},{R-},{VF}> , a ||- <->(F) = checkFormulaSet(<{A},{R+},{R-},{VF}>, F, getNeighbors(a,R-)) .
+
+endfm
+
+
+fmod PRELUDE is 
+	pr PNL-SEMANTICS .
+
+endfm
+
+
+fmod TESTING is
+	pr PRELUDE .
+
+	op p : -> Prop [ctor] .
+
+	op initA : -> AgentSet .
+	op initR+ : -> Relation .
+	op initR- : -> Relation .
+	op initVF : -> ValuationFunc .
+	op initPSM : -> PointedSignedModel .
+
+	eq initA = 1,2,3 .
+	eq initR+ = (1 <-> 2) .
+	eq initR- = (2 <-> 3) .
+	eq initVF = (p |-> (1,3)) . 
+	eq initPSM = <{initA},{initR+},{initR-},{initVF}> , 1 .
+
+endfm
